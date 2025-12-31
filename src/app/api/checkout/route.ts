@@ -180,6 +180,8 @@ export async function POST(req: Request) {
     const stripeType = (error as { type?: unknown } | null)?.type;
     const stripeRawCode = (error as { raw?: { code?: unknown } } | null)?.raw?.code;
     const causeCode = (error as { cause?: { code?: unknown } } | null)?.cause?.code;
+    const causeName = (error as { cause?: { name?: unknown } } | null)?.cause?.name;
+    const causeMessage = (error as { cause?: { message?: unknown } } | null)?.cause?.message;
 
     console.error("/api/checkout failed", {
       code: typeof code === "string" ? code : undefined,
@@ -187,6 +189,8 @@ export async function POST(req: Request) {
       stripeType: typeof stripeType === "string" ? stripeType : undefined,
       stripeCode: typeof stripeRawCode === "string" ? stripeRawCode : undefined,
       causeCode: typeof causeCode === "string" ? causeCode : undefined,
+      causeName: typeof causeName === "string" ? causeName : undefined,
+      causeMessage: typeof causeMessage === "string" ? causeMessage : undefined,
     });
 
     // Provide safe, actionable errors without leaking secrets.
