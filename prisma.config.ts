@@ -9,4 +9,10 @@ export default defineConfig({
     path: "prisma/migrations",
     seed: "tsx prisma/seed.ts",
   },
+  // Prisma supports `directUrl`, but the config types may lag.
+  // Casting avoids Next.js typecheck failures.
+  datasource: ({
+    url: process.env["DATABASE_URL"],
+    directUrl: process.env["DIRECT_URL"],
+  } as unknown as { url?: string; directUrl?: string }),
 });

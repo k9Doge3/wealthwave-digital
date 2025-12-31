@@ -71,7 +71,7 @@ Notes:
 
 Notes:
 - With Prisma v7 + Vercel, use Supabase connection pooling for `DATABASE_URL`.
-- For migrations, use `DIRECT_URL` as the Supabase "Direct connection" string (Prisma will use `directUrl` automatically for migrations).
+- For migrations, set `DIRECT_URL` to the Supabase "Direct connection" string (Prisma v7 reads this from `prisma.config.ts`).
 - After deploying, create a Stripe webhook endpoint pointing to `https://<your-domain>/api/stripe/webhook`.
 
 If you see Prisma error `P1001` (can't reach database server) on Vercel:
