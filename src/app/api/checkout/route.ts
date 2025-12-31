@@ -179,12 +179,14 @@ export async function POST(req: Request) {
     const code = (error as { code?: unknown } | null)?.code;
     const stripeType = (error as { type?: unknown } | null)?.type;
     const stripeRawCode = (error as { raw?: { code?: unknown } } | null)?.raw?.code;
+    const causeCode = (error as { cause?: { code?: unknown } } | null)?.cause?.code;
 
     console.error("/api/checkout failed", {
       code: typeof code === "string" ? code : undefined,
       message,
       stripeType: typeof stripeType === "string" ? stripeType : undefined,
       stripeCode: typeof stripeRawCode === "string" ? stripeRawCode : undefined,
+      causeCode: typeof causeCode === "string" ? causeCode : undefined,
     });
 
     // Provide safe, actionable errors without leaking secrets.
