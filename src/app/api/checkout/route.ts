@@ -6,6 +6,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getStripe } from "@/lib/stripe";
 
+export const runtime = "nodejs";
+
 const cartSchema = z.object({
   items: z
     .array(
@@ -130,10 +132,14 @@ export async function POST(req: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const code = (error as { code?: unknown } | null)?.code;
+    const stripeType = (error as { type?: unknown } | null)?.type;
+    const stripeRawCode = (error as { raw?: { code?: unknown } } | null)?.raw?.code;
 
     console.error("/api/checkout failed", {
       code: typeof code === "string" ? code : undefined,
       message,
+      stripeType: typeof stripeType === "string" ? stripeType : undefined,
+      stripeCode: typeof stripeRawCode === "string" ? stripeRawCode : undefined,
     });
 
     // Provide safe, actionable errors without leaking secrets.
@@ -168,6 +174,21 @@ export async function POST(req: Request) {
             "Checkout redirect URL is invalid. Set NEXT_PUBLIC_APP_URL to your deployed https URL.",
         },
         { status: 500 }
+      );
+    }
+
+    if (
+      message.toLowerCase().includes("connection to stripe") ||
+      message.toLowerCase().includes("econnreset") ||
+      message.toLowerCase().includes("etimedout") ||
+      message.toLowerCase().includes("enotfound")
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Stripe connection error. Check Vercel logs and verify the function is running in Node.js (not Edge).",
+        },
+        { status: 502 }
       );
     }
 

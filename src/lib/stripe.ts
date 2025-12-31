@@ -7,5 +7,8 @@ export function getStripe() {
 
   return new Stripe(process.env.STRIPE_SECRET_KEY, {
     typescript: true,
+    // Help with occasional transient network issues in serverless.
+    timeout: 30_000,
+    maxNetworkRetries: 2,
   });
 }
