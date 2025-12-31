@@ -21,6 +21,11 @@ const cartSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    const vercelId = req.headers.get("x-vercel-id");
+    if (vercelId) {
+      console.info("/api/checkout request", { vercelId });
+    }
+
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -99,6 +104,32 @@ export async function POST(req: Request) {
       "http://localhost:3000";
 
     const stripe = getStripe();
+
+    // Connectivity probe (unauthenticated) to catch DNS/egress issues early.
+    // If this fails, the Stripe SDK will also fail.
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5_000);
+      const res = await fetch("https://api.stripe.com", {
+        method: "GET",
+        signal: controller.signal,
+        headers: {
+          "user-agent": "wealthwave-digital/checkout-probe",
+        },
+      });
+      clearTimeout(timeout);
+      console.info("Stripe connectivity probe", { status: res.status });
+    } catch (probeError) {
+      const probeMessage = probeError instanceof Error ? probeError.message : String(probeError);
+      console.error("Stripe connectivity probe failed", { message: probeMessage });
+      return NextResponse.json(
+        {
+          error:
+            "Cannot reach Stripe from the server (network/DNS). Check Vercel logs/region and try again.",
+        },
+        { status: 502 }
+      );
+    }
 
     const stripeSession = await stripe.checkout.sessions.create({
       mode: "payment",
