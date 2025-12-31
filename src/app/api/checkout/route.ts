@@ -106,11 +106,12 @@ export async function POST(req: Request) {
     const stripe = getStripe();
 
     // Connectivity probe (unauthenticated) to catch DNS/egress issues early.
-    // If this fails, the Stripe SDK will also fail.
+    // We intentionally hit a real API path; 401/403 is expected without auth.
+    // If this fails or returns 5xx, the Stripe SDK will also fail.
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5_000);
-      const res = await fetch("https://api.stripe.com", {
+      const res = await fetch("https://api.stripe.com/v1/charges?limit=1", {
         method: "GET",
         signal: controller.signal,
         headers: {
@@ -118,6 +119,19 @@ export async function POST(req: Request) {
         },
       });
       clearTimeout(timeout);
+
+      // Treat 5xx as a real upstream/network failure.
+      if (res.status >= 500) {
+        console.error("Stripe connectivity probe failed", { status: res.status });
+        return NextResponse.json(
+          {
+            error:
+              "Stripe appears unavailable from this server region (upstream 5xx). Try redeploying or changing function region.",
+          },
+          { status: 502 }
+        );
+      }
+
       console.info("Stripe connectivity probe", { status: res.status });
     } catch (probeError) {
       const probeMessage = probeError instanceof Error ? probeError.message : String(probeError);
