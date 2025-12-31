@@ -1,6 +1,7 @@
 import { PrismaClient } from "../generated/prisma";
 
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
@@ -14,15 +15,9 @@ function createPrismaClient() {
     throw new Error("Missing DATABASE_URL");
   }
 
-  if (databaseUrl.startsWith("file:")) {
-    const filePath = databaseUrl.slice("file:".length);
-    const adapter = new PrismaBetterSqlite3({ url: filePath });
-    return new PrismaClient({ adapter });
-  }
-
-  throw new Error(
-    "Prisma v7 requires a runtime adapter or PRISMA_ACCELERATE_URL. Configure PRISMA_ACCELERATE_URL for production."
-  );
+  const pool = new Pool({ connectionString: databaseUrl });
+  const adapter = new PrismaPg(pool);
+  return new PrismaClient({ adapter });
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();

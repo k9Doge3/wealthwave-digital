@@ -1,10 +1,10 @@
-# Guides Store
+# WealthWave Digital
 
 Next.js app with:
 - Sign up + login (NextAuth credentials)
-- Product catalog (guides/courses)
+- Digital product catalog
 - Stripe Checkout + webhook fulfillment
-- Course access granted after payment
+- Access granted after payment (enrollments)
 - Email notifications (SMTP)
 
 ## Local development
@@ -13,7 +13,7 @@ Next.js app with:
 
 Copy `.env.example` to `.env` and fill in values.
 
-2) Set up database (SQLite by default)
+2) Set up database (Supabase Postgres)
 
 ```bash
 npm run prisma:migrate
@@ -66,9 +66,17 @@ Notes:
 - `STRIPE_WEBHOOK_SECRET`
 - `SMTP_EMAIL`
 - `SMTP_PASSWORD`
-- `DATABASE_URL`
-- `PRISMA_ACCELERATE_URL` (recommended on Vercel)
+- `DATABASE_URL` (Supabase "Connection pooling" string)
+- `PRISMA_ACCELERATE_URL` (optional alternative)
 
 Notes:
-- For production, use a hosted database. With Prisma v7, the easiest Vercel-friendly option is setting `PRISMA_ACCELERATE_URL`.
+- With Prisma v7 + Vercel, use Supabase connection pooling for `DATABASE_URL`.
+- For migrations, temporarily set `DATABASE_URL` to the Supabase "Direct connection" string when you run `prisma migrate`.
 - After deploying, create a Stripe webhook endpoint pointing to `https://<your-domain>/api/stripe/webhook`.
+
+## Supabase connection strings
+
+In Supabase: Project Settings → Database → Connection string.
+
+- Use the "Connection pooling" URI for `DATABASE_URL` during runtime (Vercel).
+- Use the "Direct connection" URI as `DATABASE_URL` when running migrations locally.
