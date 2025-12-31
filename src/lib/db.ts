@@ -36,6 +36,21 @@ function createPrismaClient() {
     throw new Error("Missing DATABASE_URL");
   }
 
+  // Log the connection target without leaking credentials.
+  // This is especially helpful in serverless environments where env vars can differ per deployment.
+  try {
+    const url = new URL(databaseUrl);
+    const dbName = url.pathname?.replace(/^\//, "") || "(none)";
+    const port = url.port || "(default)";
+    console.info("[db] DATABASE_URL target", {
+      host: url.hostname,
+      port,
+      db: dbName,
+    });
+  } catch {
+    console.info("[db] DATABASE_URL target", { host: "(unparseable)" });
+  }
+
   const maxFromEnv = process.env.PGPOOL_MAX ? Number(process.env.PGPOOL_MAX) : undefined;
   const max = Number.isFinite(maxFromEnv)
     ? (maxFromEnv as number)
