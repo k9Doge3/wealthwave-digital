@@ -129,7 +129,48 @@ export async function POST(req: Request) {
     return NextResponse.json({ url: stripeSession.url });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("/api/checkout failed", { message });
+    const code = (error as { code?: unknown } | null)?.code;
+
+    console.error("/api/checkout failed", {
+      code: typeof code === "string" ? code : undefined,
+      message,
+    });
+
+    // Provide safe, actionable errors without leaking secrets.
+    if (message.includes("Missing STRIPE_SECRET_KEY")) {
+      return NextResponse.json(
+        { error: "Checkout is not configured (missing STRIPE_SECRET_KEY)." },
+        { status: 500 }
+      );
+    }
+
+    if (
+      typeof code === "string" &&
+      (code === "P1001" || code === "P1000" || code === "P2021")
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Checkout database error. Check Vercel env vars (DATABASE_URL) and migrations.",
+        },
+        { status: 500 }
+      );
+    }
+
+    if (
+      message.toLowerCase().includes("success_url") ||
+      message.toLowerCase().includes("cancel_url") ||
+      message.toLowerCase().includes("invalid url")
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Checkout redirect URL is invalid. Set NEXT_PUBLIC_APP_URL to your deployed https URL.",
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Checkout failed (server error). Check server logs." },
       { status: 500 }
