@@ -71,12 +71,17 @@ Notes:
 
 Notes:
 - With Prisma v7 + Vercel, use Supabase connection pooling for `DATABASE_URL`.
-- For migrations, temporarily set `DATABASE_URL` to the Supabase "Direct connection" string when you run `prisma migrate`.
+- For migrations, use `DIRECT_URL` as the Supabase "Direct connection" string (Prisma will use `directUrl` automatically for migrations).
 - After deploying, create a Stripe webhook endpoint pointing to `https://<your-domain>/api/stripe/webhook`.
+
+If you see Prisma error `P1001` (can't reach database server) on Vercel:
+- Ensure `DATABASE_URL` is the Supabase **pooler** URL (host like `*.pooler.supabase.com`, usually port `6543`).
+- Ensure the URL includes `sslmode=require` (or allow SSL via your environment).
+- In Supabase: Project Settings → Database → **Network restrictions**. If enabled, Vercel may be blocked. Temporarily disable restrictions (or allow Vercel egress) to confirm.
 
 ## Supabase connection strings
 
 In Supabase: Project Settings → Database → Connection string.
 
 - Use the "Connection pooling" URI for `DATABASE_URL` during runtime (Vercel).
-- Use the "Direct connection" URI as `DATABASE_URL` when running migrations locally.
+- Use the "Direct connection" URI for `DIRECT_URL` when running migrations locally.
