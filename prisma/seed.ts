@@ -1,7 +1,27 @@
 import "dotenv/config";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 
 import { PrismaClient, ProductType } from "../src/generated/prisma";
+
+function shouldUseSslForConnectionString(connectionString: string): boolean {
+  const lowered = connectionString.toLowerCase();
+
+  const sslMode = process.env.PGSSLMODE?.toLowerCase();
+  if (sslMode === "disable") return false;
+  if (lowered.includes("sslmode=disable")) return false;
+  if (lowered.includes("ssl=false")) return false;
+
+  if (lowered.includes("sslmode=require")) return true;
+
+  try {
+    const url = new URL(connectionString);
+    const hostname = url.hostname.toLowerCase();
+    return hostname.endsWith(".supabase.co") || hostname.endsWith(".pooler.supabase.com");
+  } catch {
+    return false;
+  }
+}
 
 function createPrismaClient() {
   if (process.env.PRISMA_ACCELERATE_URL) {
@@ -11,14 +31,15 @@ function createPrismaClient() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error("Missing DATABASE_URL");
 
-  if (!databaseUrl.startsWith("file:")) {
-    throw new Error(
-      "Seeding currently supports SQLite (file:...) or PRISMA_ACCELERATE_URL."
-    );
-  }
-
-  const filePath = databaseUrl.slice("file:".length);
-  const adapter = new PrismaBetterSqlite3({ url: filePath });
+  // Seed against Postgres/Supabase.
+  // Note: For migrations/seeding, prefer using the Supabase Direct connection string.
+  const useSsl = shouldUseSslForConnectionString(databaseUrl);
+  const pool = new Pool({
+    connectionString: databaseUrl,
+    ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+    max: 1,
+  });
+  const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
 }
 
