@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Guides Store
 
-## Getting Started
+Next.js app with:
+- Sign up + login (NextAuth credentials)
+- Product catalog (guides/courses)
+- Stripe Checkout + webhook fulfillment
+- Course access granted after payment
+- Email notifications (SMTP)
 
-First, run the development server:
+## Local development
+
+1) Create env file
+
+Copy `.env.example` to `.env` and fill in values.
+
+2) Set up database (SQLite by default)
+
+```bash
+npm run prisma:migrate
+npm run db:seed
+```
+
+3) Run the dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Stripe webhook (local)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Point Stripe webhooks at the local endpoint:
 
-## Learn More
+- Endpoint: `http://localhost:3000/api/stripe/webhook`
+- Event types: `checkout.session.completed`, `checkout.session.expired`
 
-To learn more about Next.js, take a look at the following resources:
+If you use the Stripe CLI, forward events to the endpoint and copy the printed webhook secret into `STRIPE_WEBHOOK_SECRET`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Email notifications (SMTP)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This project can send email notifications:
+- Welcome email after signup
+- Admin email when a purchase completes
 
-## Deploy on Vercel
+Set these environment variables:
+- `SMTP_EMAIL` (the Gmail address used to send emails)
+- `SMTP_PASSWORD` (a Gmail App Password for that inbox)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Notes:
+- For Gmail, create an App Password (recommended) instead of using your normal password.
+- Do not commit secrets to git. Put real values in `.env` locally and in Vercel project settings.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deploy (GitHub + Vercel)
+
+1) Push this repo to GitHub.
+
+2) In Vercel, import the GitHub repo.
+
+3) Configure environment variables in Vercel:
+
+- `NEXTAUTH_URL` (your Vercel URL)
+- `NEXTAUTH_SECRET` (random)
+- `NEXT_PUBLIC_APP_URL` (same as your Vercel URL)
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `SMTP_EMAIL`
+- `SMTP_PASSWORD`
+- `DATABASE_URL`
+- `PRISMA_ACCELERATE_URL` (recommended on Vercel)
+
+Notes:
+- For production, use a hosted database. With Prisma v7, the easiest Vercel-friendly option is setting `PRISMA_ACCELERATE_URL`.
+- After deploying, create a Stripe webhook endpoint pointing to `https://<your-domain>/api/stripe/webhook`.

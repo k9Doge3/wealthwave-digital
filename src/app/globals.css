@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Soft, light theme (less stark white) */
+  --background: #f8fafc;
+  --foreground: #0b1220;
+  /* Professional accent */
+  --accent: #0f766e;
+  --accent-foreground: #ffffff;
+  color-scheme: light;
 }
 
 @theme inline {
@@ -12,15 +17,107 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji",
+    "Segoe UI Emoji";
+}
+
+@layer base {
+  * {
+    @apply border-black/10 dark:border-white/10;
+  }
+
+  body {
+    @apply antialiased;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto max-w-5xl px-6 py-10;
+  }
+
+  .container-narrow {
+    @apply mx-auto max-w-2xl px-6 py-10;
+  }
+
+  .card {
+    @apply rounded-xl border p-5 shadow-sm ring-1 ring-black/5;
+    /* White surface on soft page background */
+    background: #ffffff;
+  }
+
+  .divider {
+    @apply border-t;
+  }
+
+  .text-muted {
+    /* Higher contrast so descriptions are always readable */
+    color: #475569;
+  }
+
+  .badge {
+    @apply text-xs uppercase tracking-wide;
+    color: #64748b;
+  }
+
+  .link {
+    color: var(--accent);
+    @apply underline underline-offset-4 decoration-black/25 hover:decoration-black/50;
+  }
+
+  .input {
+    @apply mt-1 w-full rounded-md border bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/15 dark:focus:ring-white/20;
+  }
+
+  .btn {
+    @apply inline-flex cursor-pointer items-center justify-center rounded-md border px-4 py-2 text-sm font-medium transition-colors hover:bg-black/5 dark:hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1 text-sm;
+  }
+
+  .btn-xs {
+    @apply px-3 py-1 text-xs;
+  }
+
+  .btn-primary {
+    @apply border-transparent hover:opacity-90;
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+
+  .btn-ghost {
+    @apply bg-transparent;
+  }
+
+  .pill {
+    @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium;
+  }
+
+  .pill-muted {
+    @apply bg-transparent;
+  }
+
+  .pill-accent {
+    @apply border-transparent;
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+
+  .clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }
