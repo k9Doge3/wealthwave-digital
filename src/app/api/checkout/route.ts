@@ -150,6 +150,13 @@ export async function POST(req: Request) {
       );
     }
 
+    if (message.includes("Missing DATABASE_URL")) {
+      return NextResponse.json(
+        { error: "Checkout is not configured (missing DATABASE_URL)." },
+        { status: 500 }
+      );
+    }
+
     if (
       typeof code === "string" &&
       (code === "P1001" || code === "P1000" || code === "P2021")

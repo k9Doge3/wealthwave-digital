@@ -4,6 +4,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+let didLogDbTarget = false;
 
 function shouldUseSslForConnectionString(connectionString: string): boolean {
   const lowered = connectionString.toLowerCase();
@@ -38,17 +39,20 @@ function createPrismaClient() {
 
   // Log the connection target without leaking credentials.
   // This is especially helpful in serverless environments where env vars can differ per deployment.
-  try {
-    const url = new URL(databaseUrl);
-    const dbName = url.pathname?.replace(/^\//, "") || "(none)";
-    const port = url.port || "(default)";
-    console.info("[db] DATABASE_URL target", {
-      host: url.hostname,
-      port,
-      db: dbName,
-    });
-  } catch {
-    console.info("[db] DATABASE_URL target", { host: "(unparseable)" });
+  if (!didLogDbTarget) {
+    didLogDbTarget = true;
+    try {
+      const url = new URL(databaseUrl);
+      const dbName = url.pathname?.replace(/^\//, "") || "(none)";
+      const port = url.port || "(default)";
+      console.info("[db] DATABASE_URL target", {
+        host: url.hostname,
+        port,
+        db: dbName,
+      });
+    } catch {
+      console.info("[db] DATABASE_URL target", { host: "(unparseable)" });
+    }
   }
 
   const maxFromEnv = process.env.PGPOOL_MAX ? Number(process.env.PGPOOL_MAX) : undefined;
@@ -70,8 +74,28 @@ function createPrismaClient() {
   return new PrismaClient({ adapter });
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+function getPrismaClient(): PrismaClient {
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prisma ??= createPrismaClient();
+    return globalForPrisma.prisma;
+  }
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+  // In production, avoid storing on global (fine either way), but keep a single instance per runtime.
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = createPrismaClient();
+  }
+  return globalForPrisma.prisma;
 }
+
+// Export a PrismaClient-shaped proxy so modules can import `prisma` without
+// forcing DATABASE_URL to exist at import time (prevents Vercel 502 init crashes).
+export const prisma: PrismaClient = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getPrismaClient() as unknown as Record<string | symbol, unknown>;
+    const value = client[prop];
+    if (typeof value === "function") {
+      return (value as (...args: unknown[]) => unknown).bind(client);
+    }
+    return value;
+  },
+});
